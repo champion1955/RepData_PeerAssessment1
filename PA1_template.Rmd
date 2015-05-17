@@ -1,25 +1,91 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "PA1_template.Rmd"
+author: "Fred S."
+date: "Saturday, May 16, 2015"
+output: html_document
 ---
 
+#Loading and preprocessing the data
+```{r, echo = TRUE}
+library(dplyr)
+data <- read.csv("activity.csv")
+data$date <- as.Date(data$date)
+```
 
-## Loading and preprocessing the data
+#What is mean total number of steps taken per day?
 
+###Total number of steps taken each day (ignoring NA):
+```{r, echo = TRUE}
+xdata <- summarise(group_by(data, date), sum(steps))
+names(xdata) <- c("Date", "Steps")
+with(xdata, hist(Steps))
+```
 
+###The mean of the total number of steps taken each day:
+```{r, echo = TRUE}
+mean(xdata$Steps, na.rm=TRUE)
+```
 
-## What is mean total number of steps taken per day?
+###The median of the total number of steps taken each day:
+```{r, echo = TRUE}
+median(xdata$Steps, na.rm=TRUE)
+```
 
+#What is the average daily activity pattern?
 
+###Time series plot of the 5-minute interval and the average number of steps taken, averaged across all days:
+```{r, echo = TRUE}
+ydata <- summarise(group_by(data, interval), mean(steps, na.rm=TRUE))
+names(ydata) <- c("Interval", "Steps")
+plot(ydata, type="l")
+```
 
-## What is the average daily activity pattern?
+###The 5-minute interval that contains the maximum number of steps on average:
+```{r, echo = TRUE}
+ydata[which.max(ydata$Steps),]
+```
 
+#Imputing missing values
 
+###The total number of rows that are missing values in the dataset:
+```{r, echo = TRUE}
+sum(is.na(data))
+```
 
-## Imputing missing values
+###Creates a new dataset with the missing steps set to zero 
+####(This strategy was selected as it was considered the most conservative assumption and is therefore preferred)
+```{r, echo = TRUE}
+newData <- data
+newData[is.na(newData)] <- 0
+```
 
+###Revised total number of steps taken each day:
+```{r, echo = TRUE}
+zdata <- summarise(group_by(newData, date), sum(steps))
+names(zdata) <- c("Date", "Steps")
+with(zdata, hist(Steps))
+```
 
+###The revised mean of the total number of steps taken each day:
+```{r, echo =TRUE}
+mean(zdata$Steps)
+```
 
-## Are there differences in activity patterns between weekdays and weekends?
+###The revised median of the total number of steps taken each day:
+```{r, echo=TRUE}
+median(zdata$Steps)
+```
+
+#Are there differences in activity patterns between weekdays and weekends?
+
+###Time series plot of the 5-minute interval and the average number of steps taken, averaged across all weekdays or weekends
+```{r, echo = TRUE}
+library(lattice)
+newData$Day <- weekdays(newData$date)
+newData$Day[newData$Day %in% c("Sunday", "Saturday")] <- "weekend"
+newData$Day[newData$Day %in% c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")] <- "weekday"
+wdata <- summarise(group_by(newData, interval, Day), mean(steps))
+names(wdata) <- c("Interval", "Day", "Steps")
+xyplot(Steps~Interval | Day, data=wdata, type="l", layout=c(1,2))
+```
+
